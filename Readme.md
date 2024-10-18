@@ -1,5 +1,5 @@
 - [中文](ReadmeCN.md)
-### ENGLISH ###
+- [English](Readme.md)
 ### Using method ###
 
 Click to open KNZ_Convert_en_us_ver_1.0.6.exe of english version.
