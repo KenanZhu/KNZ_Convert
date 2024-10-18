@@ -1,3 +1,5 @@
+- [English](Readme.md)
+
 ### 使用方法 ###
 单击打开中文版的 “KNZ_Convert_zh_cn_ver_1.0.6.exe”。
 
