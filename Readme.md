@@ -1,4 +1,4 @@
-### ENGLISH: ###
+### ENGLISH ###
 ### Using method ###
 
 Click to open KNZ_Convert_en_us_ver_1.0.6.exe of english version.
@@ -13,9 +13,8 @@ The converted file will note the version of convert at the heder of file.
 The converted file own some traits as below:
 
 1. Conversion does not require additional parameter information,
-	the file is lossless conversion, only convert the foemat,
-	do not modify the information. 
-2. For the obsrved value types ofdifferent frequency hands in the original file,
-	the software will automatically match and general default is the conversion table at the end of the readme：
+the file is lossless conversion, only convert the foemat,
+do not modify the information. 
+2. The double character observation types of RINEX2.xx version will be automatically matched according to the following table:
 
 ![image](Convert_chart.png)
