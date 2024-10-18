@@ -16,6 +16,6 @@ The converted file own some traits as below:
 	the file is lossless conversion, only convert the foemat,
 	do not modify the information. 
 2. For the obsrved value types ofdifferent frequency hands in the original file,
-	the software will automatically match and general default is the conversion table at the end of the readme
+	the software will automatically match and general default is the conversion table at the end of the readme：
 
 ![image](Convert_chart.png)
