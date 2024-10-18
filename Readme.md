@@ -1,3 +1,4 @@
+- [中文](ReadmeCN.md)
 ### ENGLISH ###
 ### Using method ###
 
