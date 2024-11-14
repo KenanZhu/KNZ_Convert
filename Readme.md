@@ -18,7 +18,7 @@ the file is lossless conversion, only convert the foemat,
 do not modify the information. 
 2. The double character observation types of RINEX2.xx version will be automatically matched according to the following table:
 
-[image](Convert_chart.jpg)
+[Convert_chart.jpg](Convert_chart.jpg)
 
 ### About Project ###
 At present, the RINEX2.xx format conversion has been fully supported,
