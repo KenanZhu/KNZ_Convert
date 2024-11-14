@@ -24,3 +24,8 @@ do not modify the information.
 At present, the RINEX2.xx format conversion has been fully supported,
 the format output error of the previous version has been modified,
 and the conversion from 2.xx to 3.xx is currently supported.
+
+### Update plan ###
+1. 2.xx and 3.xx versions are fully supported, and support mutual conversion.
+2. Gradually introduce the conversion support for RTCM files.
+3. Long-term goal: receiver raw data conversion
