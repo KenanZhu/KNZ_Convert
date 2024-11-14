@@ -2,7 +2,7 @@
 
 ### Using method ###
 
-Click to open KNZ_Convert_en_us_ver_1.0.6.exe of english version.
+Click to open KNZ_Convert_en_us_ver_1.2.1.exe of english version.
 
 Click "Single file convert" or "Batch files convert", input the RINEX file of version of 2.10 or 2.11.
 
@@ -19,3 +19,8 @@ do not modify the information.
 2. The double character observation types of RINEX2.xx version will be automatically matched according to the following table:
 
 ![image](Convert_chart.png)
+
+### About Project ###
+At present, the RINEX2.xx format conversion has been fully supported,
+the format output error of the previous version has been modified,
+and the conversion from 2.xx to 3.xx is currently supported.
