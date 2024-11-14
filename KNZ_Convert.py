@@ -1,415 +1,751 @@
+# @ File : KNZ_Convert.py
+#
+# Copyright (c) 2024 - 2024 KenanZhu. All Right Reserved.
+#
+# @ Author         : KenanZhu
+# @ Time           : 2024/11/13
+# @ Brief          :
+#                  :
+# @ IDE            : PyCharm
+#
+# ----------------------------------------------------------------------------------------
+# ---SELF--- #
+import rnx_convert as conv
+# ---THRI--- #
+import queue
 import threading
 import tkinter as tk
 
-from base64 import b64decode
-from tkinter import filedialog, StringVar, IntVar
-from tkinter import messagebox
 from tkinter import ttk
 from PIL import ImageTk
+from base64 import b64decode
+from tkinter import filedialog
+# ---------------------------------------------------------------------------------------
+InPaths = []
+#
+I_Box_Counter=0
+O_Box_Counter=0
+#
+I_Format_Rnx_List=0
+I_RINEX_BoxList=['2.10','2.11','3.03','3.04','3.05']
+O_Format_Rnx_List=0
+O_RINEX_BoxList=['2.10','2.11','3.03','3.04','3.05']
+# ---------------------------------------------------------------------------------------
+def instanceOPT(parenthwnd, func):
+    OPTIONS(parenthwnd, func)
 
-import Read_o as obs
-
-##Combox Count-er
-ComboxCount  = 0
-ComboxCount1 = 0
-
-ObsPaths = []
-
-def GetObsFilePath(ObsFileSelectBox):
-    global ComboxCount
-    path = filedialog.askopenfilename()
-    if path and path not in ObsFileSelectBox['value']:
-        ObsFileSelectBox['value'] += (path,)
-        ComboxCount += 1
-        ObsFileSelectBox.current(ComboxCount)
-
-def GetObsFilesPath(ObsPathsShow):
-    global ObsPaths
-    paths = filedialog.askopenfilenames()
-    for path in paths:
-        if path and path not in ObsPaths:
-            ObsPaths.append(path)
-    ObsPathsShow.delete('1.0', 'end')
-    for path in ObsPaths:
-        ObsPathsShow.insert('end', path + '\n')
-
-def ClearObsFilesPath(ObsPathsShow):
-    global ObsPaths
-    ObsPaths.clear()
-    ObsPathsShow.delete('1.0','end')
-
-def AskDirectory(AskDirectorySelectBox):
-    global ComboxCount1
-    path = filedialog.askdirectory()
-    if path and path not in AskDirectorySelectBox['value']:
-        AskDirectorySelectBox['value'] += (path + '/',)
-        ComboxCount1 += 1
-        AskDirectorySelectBox.current(ComboxCount1)
-
-def AskOrNotCheck(AskOrNotCheckVar,
-                  AskDirectorySelectBox,
-                  AskDirectorySelectButton):
-
-    if AskOrNotCheckVar.get() == 0:
-        AskDirectorySelectBox.config(state=tk.DISABLED)
-        AskDirectorySelectButton.config(state=tk.DISABLED)
-    else:
-        AskDirectorySelectBox.config(state=tk.NORMAL)
-        AskDirectorySelectButton.config(state=tk.NORMAL)
-
-def ConvertFile(ConvertState,
-                ObsSelectBoxVar,
-                AskOrNotCheckVar,
-                DirectorySelectBoxVar,
-                MainCradsOption):
-
-    global ObsPaths
-    ObsPath = []
-
-    if MainCradsOption.index('current') == 0:
-        if AskOrNotCheckVar.get():
-            if not DirectorySelectBoxVar.get() and not ObsSelectBoxVar.get():
-                ConvertState.config(text='Invalid Path & Directory !')
-                return
-            if not DirectorySelectBoxVar.get() and ObsSelectBoxVar.get():
-                ConvertState.config(text='Invalid Directory !')
-                return
-            else:
-                DirectoryOut = DirectorySelectBoxVar.get()
-
-        if not AskOrNotCheckVar.get():
-            DirectoryOut = ''
-
-        if not ObsSelectBoxVar.get():
-            ObsPath.clear()
-            ConvertState.config(text='Invalid Path !')
-            return
+class CALLBACK:
+    @staticmethod
+    def Get_I_File(File_I_Box):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        global I_Box_Counter
+        path = filedialog.askopenfilename(
+            title='RINEX OBS File',
+            filetypes=[('RINEX OBS File(*.o*.*.*obs.*.*d)', '*.*o;*.*obs;*.*d'),
+                       ('All Files', '*.*')]
+        )
+        if path and path not in File_I_Box['value']:
+            File_I_Box['value'] += (path,)
+            I_Box_Counter += 1
+            File_I_Box.current(I_Box_Counter)
+    @staticmethod
+    def Get_I_Files(Files_I_ShowText):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        global InPaths
+        paths = filedialog.askopenfilenames(
+            title='RINEX OBS File',
+            filetypes=[('RINEX OBS File(*.o*.*.*obs.*.*d)', '*.*o;*.*obs;*.*d'),
+                       ('All Files', '*.*')]
+        )
+        for path in paths:
+            if path and path not in InPaths:
+                InPaths.append(path)
+        Files_I_ShowText.delete('1.0', 'end')
+        for path in InPaths:
+            Files_I_ShowText.insert('end', path + '\n')
+    @staticmethod
+    def Clear_I_Files(Files_I_ShowText):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        global InPaths
+        InPaths.clear()
+        Files_I_ShowText.delete('1.0', 'end')
+    @staticmethod
+    def Get_O_Dir(File_O_Box):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        global O_Box_Counter
+        path = filedialog.askdirectory()
+        if path and path not in File_O_Box['value']:
+            File_O_Box['value'] += (path + '/',)
+            O_Box_Counter += 1
+            File_O_Box.current(O_Box_Counter)
+    @staticmethod
+    def Enable_YN(File_O_ynVar, File_O_Box, File_O_Button):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        if File_O_ynVar.get() == 0:
+            File_O_Box.config(state=tk.DISABLED)
+            File_O_Button.config(state=tk.DISABLED)
         else:
-            ObsPath.clear()
-            ObsPath.append(ObsSelectBoxVar.get())
+            File_O_Box.config(state=tk.NORMAL)
+            File_O_Button.config(state=tk.NORMAL)
 
-    if MainCradsOption.index('current') == 1:
-        if AskOrNotCheckVar.get():
-            if not DirectorySelectBoxVar.get() and not ObsPaths:
-                ConvertState.config(text='Invalid Path & Directory !')
-                return
-            if not DirectorySelectBoxVar.get() and ObsPaths:
-                ConvertState.config(text='Invalid Directory !')
-                return
-            else:
-                DirectoryOut = DirectorySelectBoxVar.get()
+    def Dir_or_name_get(self, path, mode):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method: Dir_or_name_get
+        # Brief : Get the filedir or filename form path
+        # Param : path : file path
+        #         mode : 0==get file name & 1==get file dir
+        # Return: mode==0 return filename,mode==1 return file dir
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        global nameend, filename, filedir
+        match mode:
+            case 0:
+                path_len = len(path)
+                while path_len > 0:
+                    sig = path[path_len - 1:path_len]
+                    if sig == '\\' or sig == '/':
+                        filename = path[path_len:]
+                        return filename
+                    path_len -= 1
 
-        if not AskOrNotCheckVar.get():
-            DirectoryOut = ''
+            case 1:
+                path_len = len(path)
+                while path_len > 0:
+                    sig = path[path_len - 1:path_len]
+                    if sig == '\\' or sig == '/':
+                        filedir = path[:path_len]
+                        return filedir
+                    path_len -= 1
 
-        if not ObsPaths:
-            ObsPath.clear()
-            ConvertState.config(text='Invalid Path !')
+    def Convert(
+            self,
+            Pro_style,
+            File_O_ynVar,
+            File_I_BoxVar,
+            File_O_BoxVar,
+            Convertcards,
+            Exec_Progress):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        global InPaths
+        Counter=0
+        State_O=0
+        InPath=[]
+        ErrorMsg=''
+        OutDirec=''
+        out_path=''
+        Exec_Progress.config(value=0)
+        if Convertcards.index('current')==0:
+            if not File_I_BoxVar.get(): ErrorMsg+=' path'
+            else: InPath.append(File_I_BoxVar.get())
+        elif Convertcards.index('current')==1:
+            if not InPaths: ErrorMsg+=' path'
+            else: InPath=InPaths.copy()
+        if File_O_BoxVar.get(): OutDirec = File_O_BoxVar.get()
+        if not File_O_BoxVar.get():
+            if File_O_ynVar.get(): ErrorMsg+=' directory'
+            else : pass
+        if ErrorMsg:
+            ErrorMsg='Error : no'+ErrorMsg+' !'
+            Exec_Progress.config(value=0)
+            Pro_style.configure('text.Horizontal.TProgressbar', text=ErrorMsg)
             return
-        else:
-            ObsPath.clear()
-            ObsPath = ObsPaths.copy()
-            pass
+        ###
+        resqueue = queue.Queue()
+        for in_path in InPath:
+            if OutDirec:
+                out_path=OutDirec+'COV-'+self.Dir_or_name_get(in_path,0)
+            if not OutDirec:
+                out_path=(self.Dir_or_name_get(in_path,1)+'COV-'+
+                          self.Dir_or_name_get(in_path,0))
+            State_O+=conv._Convert_Un(in_path,
+                                      out_path,
+                                      I_RINEX_BoxList[I_Format_Rnx_List],
+                                      O_RINEX_BoxList[O_Format_Rnx_List],
+                                      resqueue)
+            Counter+=1
+            Exec_Progress.config(value=int(Counter*100/len(InPath)))
+            Pro_style.configure(
+                'text.Horizontal.TProgressbar',
+                text='Converting...%d/%d'%(Counter, len(InPath)))
 
-    state = 0
-    count = 0
-    ConvertState.config(text='Converting...')
-    for Path in ObsPath:
-        ConvertState.config(text='Converting... %d/%d'%(count, len(ObsPath)))
-        state += obs.ReadObsVersion(Path, DirectoryOut)
-        count += 1
+        if State_O<=len(InPath):
+            #Exec_Progress.config(value=0)
+            Pro_style.configure(
+                'text.Horizontal.TProgressbar',
+                text='Complete !  %d successful, %d fails'%(State_O, len(InPath)-State_O))
 
-    if state == len(ObsPath):
-        ConvertState.config(text='Complete !  %d successful, %d fails'%(state, 0) )
+    def _Convert(
+            self,
+            Pro_style,
+            File_O_ynVar,
+            File_I_BoxVar,
+            File_O_BoxVar,
+            Convertcards,
+            Exec_Progress):
 
-    elif state and state < len(ObsPath):
-        ConvertState.config(text='Complete !  %d successful, %d fails'%(state, len(ObsPath)-state) )
+        T=threading.Thread(target=lambda :
+        self.Convert(
+            Pro_style,
+            File_O_ynVar,
+            File_I_BoxVar,
+            File_O_BoxVar,
+            Convertcards,
+            Exec_Progress
+        ))
+        T.start()
 
-    elif state == 0:
-        ConvertState.config(text='Fail !  %d successful, %d fails' % (0, len(ObsPath)) )
+    @staticmethod
+    def Move_center(hwnd, win_x, win_y):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method: Move_Ccenter
+        # Brief : Move the window to the center of screen.
+        # Param : hwnd : instance handle of window
+        #         win_x: the x size of window
+        #         win_y: the y size of window
+        # Return: none
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        position_x = int((hwnd.winfo_screenwidth() - win_x) / 2)
+        position_y = int((hwnd.winfo_screenheight() - win_y) / 2)
+        hwnd.geometry(f'{win_x}x{win_y}+{position_x}+{position_y}')
 
-    ObsPath.clear()
-    return
+# noinspection PyProtectedMember
+class MAINGUI:
+    def __init__(self, hwnd, func):
+        # init
+        # -------------------------------------------------------------------------------
+        self.hwnd=hwnd
+        self.func=func
+        self.Pro_style=None
+        self.ExecFrame=None
+        self.BatchFrame=None
+        self.SingleFrame=None
+        self.Convertcards=None
+        self.Exec_Progress=None
 
-def _ConvertFile(ConvertState,
-                 ObsSelectBoxVar,
-                 AskOrNotCheckVar,
-                 DirectorySelectBoxVar,
-                 MainCradsOption):
+        self.File_O_ynVar=tk.IntVar()
+        self.File_I_BoxVar=tk.StringVar()
+        self.File_O_BoxVar=tk.StringVar()
 
-    global ObsPaths
+        self.iconoptions=(b'AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                          b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                          b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOrq6v/q6ur/6urq/+rq6'
+                          b'v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v+CgoL/dnZ2/1RUVP9UVFT/VFRU'
+                          b'/1RUVP9UVFT/VFRU/1RUVP9UVFT/VFRU/1RUVP9UVFT/VFRU/3Z2dv+CgoL/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P'
+                          b'/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                          b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                          b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/'
+                          b'6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/4KCgv92dnb/VFRU/1RUVP9UVFT/VFRU/1RUVP9UVFT/VFRU/1RUVP9'
+                          b'UVFT/VFRU/1RUVP9UVFT/dnZ2/4KCgv/Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8'
+                          b'PDw//Dw8P/w8PD/8PDw//Dw8P/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                          b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6urqGAAAAAAAAAAAAAAAAAAAAAAA'
+                          b'AAAAAAAAAAAAAADq6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+r'
+                          b'q6v/q6ur/goKC/3Z2dv9UVFT/VFRU/1RUVP9UVFT/VFRU/1RUVP9UVFT/VFRU/1RUVP9UVFT/VFRU/1RUVP92dnb/go'
+                          b'KC/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw/8AA'
+                          b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//8AAP//'
+                          b'AAAAAAAAAAAAAAAAAAD//wAA//8AAAAAAAAAAAAAAAAAAP//AAD/fwAAAAAAAAAAAAAAAAAA//8AAA==')
+        self.iconoptions=b64decode(self.iconoptions)
+        self.iconoptions=ImageTk.PhotoImage(data=self.iconoptions)
+        self.initGUI()
 
-    T = threading.Thread(target=lambda :ConvertFile(ConvertState,
-                                                    ObsSelectBoxVar,
-                                                    AskOrNotCheckVar,
-                                                    DirectorySelectBoxVar,
-                                                    MainCradsOption))
-    T.start()
+    def initGUI(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        self.hwnd.title("KNZ_Convert")
+        self.hwnd.resizable(0, 0)
+        self.func.Move_center(self.hwnd, 400, 230)
+        ###
+        icon_ico = (b'AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAAABAAADjsAAA47AAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAA'
+                    b'AAAAAAAAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAQAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAEgAAABAAAAAQAA'
+                    b'AAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABIAAAAGAAAAAAAAAAAAAAAGAAAAEgAAABAAAAAQAAAAEAAAABAAAAAQAAA'
+                    b'AEAAAABAAAAAQAAAAEAAAABIAAAAGAAAAAAAAAAAAAAAAAAAAAQAAALkAAAD3AAAA8AAAAPIAAADyAAAA8gAAAPIAAADyAAAA'
+                    b'8gAAAPIAAADwAAAA9wAAALkAAAAAAAAAAAAAALkAAAD3AAAA8AAAAPIAAADyAAAA8gAAAPIAAADyAAAA8gAAAPIAAADwAAAA9'
+                    b'wAAALkAAAABAAAAAAAAAAAAAAARAAAA7wAAAP8AAADyAAAA8gAAAPIAAADyAAAA8gAAAPIAAADyAAAA8gAAAPIAAAD/AAAA7w'
+                    b'AAAA0AAAANAAAA7wAAAP8AAADyAAAA8gAAAPIAAADyAAAA8gAAAPIAAADyAAAA8gAAAPIAAAD/AAAA7wAAABEAAAAAAAAAAAA'
+                    b'AABAAAADxAAAA8gAAAB8AAAAMAAAAEQAAABAAAAAQAAAAEAAAABEAAAAMAAAAHwAAAPIAAADxAAAADAAAAAwAAADxAAAA8gAA'
+                    b'AB8AAAAMAAAAEQAAABAAAAAQAAAAEAAAABEAAAAMAAAAHwAAAPIAAADxAAAAEAAAAAAAAAAAAAAAEAAAAPMAAADyAAAAEAAAA'
+                    b'AAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAQAAAA8gAAAPMAAAAMAAAADAAAAPMAAADyAAAAEAAAAAAAAAABAAAAAAAAAA'
+                    b'AAAAAAAAAAAQAAAAAAAAAQAAAA8gAAAPMAAAAQAAAAAAAAAAAAAAAQAAAA8wAAAPIAAAARAAAAAAAAAAIAAAABAAAAAQAAAAE'
+                    b'AAAACAAAAAAAAABEAAADwAAAA8QAAAAsAAAALAAAA8QAAAPAAAAARAAAAAAAAAAIAAAACAAAAAgAAAAEAAAACAAAAAAAAABEA'
+                    b'AADyAAAA8wAAABAAAAAAAAAAAAAAABAAAADzAAAA8gAAABAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAEAAAAPIAA'
+                    b'ADzAAAADAAAAAwAAADzAAAA8gAAABAAAAAAAAAAAgAAAAEAAAABAAAAAgAAAAEAAAAAAAAAEAAAAPIAAADzAAAAEAAAAAAAAA'
+                    b'AAAAAAEAAAAPMAAADyAAAAEAAAAAAAAAABAAAAAQAAAAEAAAABAAAAAgAAAAEAAAAAAAAAwwAAAMMAAAAAAAAAAAAAAMQAAAD'
+                    b'DAAAAAAAAAAEAAAAAAAAABwAAAAcAAAAAAAAAAwAAAAAAAAAQAAAA8gAAAPMAAAAQAAAAAAAAAAAAAAAQAAAA8wAAAPIAAAAQ'
+                    b'AAAAAAAAAAIAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAABAAAAAAAAAAAAAAABAAAAAQAAAAAAAAAAAAAAAEAAADEA'
+                    b'AAA0AAAABYAAAAAAAAAAAAAABAAAADyAAAA8wAAABAAAAAAAAAAAAAAABAAAADzAAAA8gAAABAAAAAAAAAAAAAAAAUAAAARAA'
+                    b'AAEAAAABAAAAAQAAAAEQAAAA8AAAAPAAAAEQAAABEAAAAPAAAADwAAABIAAAAPAAAAEwAAANMAAAD/AAAAzwAAABgAAAAAAAA'
+                    b'AEgAAAPIAAADzAAAAEAAAAAAAAAAAAAAAEAAAAPMAAADyAAAAEQAAAAAAAAADAAAAwgAAAPsAAADwAAAA8gAAAPIAAADyAAAA'
+                    b'8wAAAPMAAADyAAAA8gAAAPMAAADzAAAA8gAAAPMAAADvAAAA8gAAAPwAAAD/AAAAzAAAAAAAAAAPAAAA8wAAAPMAAAAQAAAAA'
+                    b'AAAAAAAAAAQAAAA8wAAAPIAAAARAAAAAAAAAAMAAADCAAAA+wAAAPAAAADyAAAA8gAAAPIAAADzAAAA8wAAAPIAAADyAAAA8w'
+                    b'AAAPMAAADyAAAA8wAAAO8AAADzAAAA/AAAAP8AAADMAAAAAAAAAA8AAADzAAAA8wAAABAAAAAAAAAAAAAAABAAAADzAAAA8gA'
+                    b'AABAAAAAAAAAAAAAAAAUAAAARAAAAEAAAABAAAAAQAAAAEQAAAA8AAAAPAAAAEQAAABEAAAAPAAAADwAAABIAAAAPAAAAEwAA'
+                    b'ANMAAAD/AAAAzwAAABgAAAAAAAAAEgAAAPIAAADzAAAAEAAAAAAAAAAAAAAAEAAAAPMAAADyAAAAEAAAAAAAAAACAAAAAQAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAABAAAAxAAAANAAAAAWAAAAAAAAAA'
+                    b'AAAAAQAAAA8gAAAPMAAAAQAAAAAAAAAAAAAAAQAAAA8wAAAPIAAAAQAAAAAAAAAAEAAAABAAAAAQAAAAEAAAACAAAAAQAAAAA'
+                    b'AAADDAAAAwwAAAAAAAAAAAAAAwwAAAMMAAAAAAAAAAQAAAAAAAAAHAAAABwAAAAAAAAADAAAAAAAAABAAAADyAAAA8wAAABAA'
+                    b'AAAAAAAAAAAAABAAAADzAAAA8gAAABAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAEAAAAPIAAADzAAAADAAAAAwAA'
+                    b'ADzAAAA8gAAABAAAAAAAAAAAgAAAAEAAAABAAAAAgAAAAEAAAAAAAAAEAAAAPIAAADzAAAAEAAAAAAAAAAAAAAAEAAAAPMAAA'
+                    b'DyAAAAEQAAAAAAAAACAAAAAQAAAAEAAAABAAAAAgAAAAAAAAARAAAA8AAAAPEAAAALAAAACwAAAPEAAADwAAAAEQAAAAAAAAA'
+                    b'CAAAAAgAAAAIAAAABAAAAAgAAAAAAAAARAAAA8gAAAPMAAAAQAAAAAAAAAAAAAAAQAAAA8wAAAPIAAAAQAAAAAAAAAAEAAAAA'
+                    b'AAAAAAAAAAAAAAABAAAAAAAAABAAAADyAAAA8wAAAAwAAAAMAAAA8wAAAPIAAAAQAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABA'
+                    b'AAAAAAAABAAAADyAAAA8wAAABAAAAAAAAAAAAAAABAAAADxAAAA8gAAAB8AAAAMAAAAEQAAABAAAAAQAAAAEAAAABEAAAAMAA'
+                    b'AAHwAAAPIAAADxAAAADAAAAAwAAADxAAAA8gAAAB8AAAAMAAAAEQAAABAAAAAQAAAAEAAAABEAAAAMAAAAHwAAAPIAAADxAAA'
+                    b'AEAAAAAAAAAAAAAAAEQAAAO8AAAD/AAAA8gAAAPIAAADyAAAA8gAAAPIAAADyAAAA8gAAAPIAAADyAAAA/wAAAO8AAAANAAAA'
+                    b'DQAAAO8AAAD/AAAA8gAAAPIAAADyAAAA8gAAAPIAAADyAAAA8gAAAPIAAADyAAAA/wAAAO8AAAARAAAAAAAAAAAAAAABAAAAu'
+                    b'gAAAPcAAADwAAAA8gAAAPIAAADyAAAA8gAAAPIAAADyAAAA8gAAAPAAAAD3AAAAuQAAAAAAAAAAAAAAugAAAPcAAADwAAAA8g'
+                    b'AAAPIAAADyAAAA8gAAAPIAAADyAAAA8gAAAPAAAAD3AAAAugAAAAEAAAAAAAAAAAAAAAAAAAAGAAAAEgAAABAAAAAQAAAAEAA'
+                    b'AABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABIAAAAGAAAAAAAAAAAAAAAGAAAAEgAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAA'
+                    b'ABAAAAAQAAAAEAAAABIAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'EAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAA'
+                    b'AAAAAAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                    b'AAAAAAAAAAAAAAA////////////////QAGAApf0L+lAAYACgAAAAYAAAAGAAAABhdALoYQQCCGF0AghhAmQIYSpmGGEAAAhhA'
+                    b'AAIYQAACGEAAAhhKmYYYQJkCGF0AghhBAIIYXQC6GAAAABgAAAAYAAAAFAAYACl/Qv6UABgAL///////////////8=')
+        icon_ico = b64decode(icon_ico)
+        icon_ico = ImageTk.PhotoImage(data=icon_ico)
+        self.hwnd.tk.call('wm', 'iconphoto', self.hwnd._w, icon_ico)
+        ###
+        self.initCONVERT()
+        ###
+        self.initExecCtrl()
+        ###
+        self.hwnd.protocol('WM_DELETE_WINDOW',self.hwnd.quit)
+        self.hwnd.mainloop()
 
-
-def InitGUI(hwnd):
-
-    # GUI Instantiate
-    hwnd.title("KNZ_Convert")
-    hwnd.geometry('400x400')
-    hwnd.minsize(400, 230)
-    hwnd.maxsize(400, 230)
-
-    icon_ico =(b'AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAA'
-               b'ABAAAPY6AQD2OgEAAAAAAAAAAAA6IjAAMywqADItKQMyLSkAMi0pADIt'
-               b'KQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMi0pADItKQAyLSkB'
-               b'Mi0pAjItKQAyLSkAMi0oADItKAAyLSgAMi0oADItKAEyLSgBMi0pADIt'
-               b'KQAyLSgAMi0oAAAAAAAAAAAAAAAAADItKQAyLSkBMi0pADItKRkyLSlH'
-               b'Mi0pUzItKVMyLSlTMi0pVDItKVQyLSlUMi0pUzItKVQyLSlSMi0pOzIt'
-               b'KQoyLSkAMi0pATItKAAyLSgSMi0oIjItKBcyLSgIMy0pAA8+CQAyLSgB'
-               b'Mi0oATItKAAyLSgAMi0pAAAAAAAAAAAAMi0pAzItKQAyLSlkMi0p+jIt'
-               b'Kf8yLSn+Mi0p/zItKf8yLSn/Mi0p/zItKf8yLSn/Mi0p/zItKf4yLSn/'
-               b'Mi0p2zItKSkyLSkAMi0pBTItKF8yLShvMi0oajItKGMyLShIMi0oHjEu'
-               b'MQAyLScAMi0oATItKAAyLSgAMi0pAAAAAAAyLSkAMi0pGDItKfEyLSn/'
-               b'Mi0puzItKaEyLSmjMi0pozItKaMyLSmjMi0pozItKaMyLSmjMi0pozIt'
-               b'KdEyLSn/Mi0przItKQAyLSYAMi0oRTItKGwyLShhMi0oYTItKHMyLShu'
-               b'Mi0oSTItKAwyLSgAMi0oATItKAAyLSgAMS4oADItKQAyLSlDMi0p/zIt'
-               b'Kb0yLSkAMi0pAjItKQAAAAAAAAAAAAAAAAAAAAAAAAAAADItKQIyLSkA'
-               b'Mi0pIjItKf8yLSnjMi0pCTItKQAyLSgOMi0oYzItKG0yLSglMi0oJjIt'
-               b'KF4yLShzMi0oXTItKBMyLSgAMi0oATItKAAyLSgAMi0pADItKU8yLSn/'
-               b'Mi0ppzItKQAyLSkHMi0pBDItKQQyLSkEMi0pBDItKQQyLSkEMi0pBTIt'
-               b'KQAyLSkSMi0p8zItKfEyLSkQMi0pADItKAAyLSgrMi0oZDItKBgyLSgA'
-               b'Mi0oCTItKEgyLShxMi0oXTItKAwyLSgAMi0oATItKAAyLSkAMi0pUTIt'
-               b'Kf8yLSmnMi0pADItKQYyLSkCMi0pAjItKQIyLSkCMi0pAjItKQIyLSkD'
-               b'Mi0pADItKRMyLSnyMi0p8jItKRAyLSkAMi0pATItKQEyLSkEMi0oADIt'
-               b'KAIxKSAAMi8rATItKEgyLShyMi0oSjItJwAyLScAMi0oADItKQAyLSlQ'
-               b'Mi0p/zItKaYyLSkAMi0pAzItKQAAAAAAAAAAAAAAAAAAAAAAAAAAADIt'
-               b'KQEyLSkAMi0pEDItKfIyLSnyMi0pEDItKQAyLSkBMi0oATItKAAyLSgA'
-               b'Mi0oADItKAEyLSgAMi0oCTItKFwyLShuMi0oIDItKAAyLSgBMi0pADIt'
-               b'KVMyLSn/Mi0p5DItKbYyLSm7Mi0pujItKboyLSm6Mi0pujItKboyLSm6'
-               b'Mi0pujItKbkyLSm9Mi0p/zItKe8yLSkRMi0pADItKQEyLSgAMi0oADMt'
-               b'KQAyLSgAMi0oADItKAIyLSgAMi0oLTItKHIyLShJMi0oADItKAEyLSkA'
-               b'Mi0pVTItKf8yLSn8Mi0p/zItKf8yLSn/Mi0p/zItKf8yLSn/Mi0p/zIt'
-               b'Kf8yLSn/Mi0p/zItKf4yLSn/Mi0p7jItKREyLSkAMi0pAQAAAAAAAAAA'
-               b'AAAAADIrJwAyLSgAMi0oATItKAAyLSgMMi0oYzItKGIyLSgJMi0oADIt'
-               b'KQAyLSlRMi0p/zItKbwyLSk2Mi0pQzItKUEyLSlBMi0pQTItKUEyLSlB'
-               b'Mi0pQTItKUIyLSk+Mi0pTTItKfYyLSnxMi0pEDItKQAyLSkBAAAAAAAA'
-               b'AAAAAAAAAAAAADItKAAyLSgAMy0nADMtJwAyLShQMi0objItKBYyLSgA'
-               b'Mi0pADItKU0yLSn/Mi0pqTItKQAyLSkDMi0pAAAAAAAAAAAAAAAAAAAA'
-               b'AAAAAAAAMi0pATItKQAyLSkSMi0p9DItKe4yLSkOMi0pADItKQEAAAAA'
-               b'AAAAAAAAAAAAAAAAAAAAADItKAAyLSgBMi0oADItKEgyLSh2Mi0oITIt'
-               b'KAAyLSkAMi0pODItKf8yLSnVMi0pIjItKRMyLSkUMi0pEzItKRMyLSkT'
-               b'Mi0pEzItKRMyLSkVMi0pDTItKVEyLSn/Mi0p1zItKgIyLSkAMi0pAQAA'
-               b'AAAAAAAAAAAAAAAAAAAAAAAAMi0oADItKAEyLSgAMi0oLzItKGIyLSgR'
-               b'Mi0oADItKQAyLSkGMi0p0zItKf8yLSn6Mi0p8zItKfIyLSnyMi0p8jIt'
-               b'KfIyLSnyMi0p8jItKfIyLSn1Mi0p+zItKf8yLSmJMi0pADItKQMyLSkA'
-               b'AAAAAAAAAAAAAAAAAAAAAAAAAAAyLSkAMy0oADMtKAAzLSgBMi0oBDMt'
-               b'KAAzLSgAMi0pAjItKQAyLSknMi0psTItKeYyLSnyMi0p8jItKfIyLSny'
-               b'Mi0p8jItKfIyLSnyMi0p8jItKfAyLSndMi0piDItKQcyLSkAMi0pAjIt'
-               b'KQEyLSkBMi0pATItKQEyLSkBMi0pATItKQEyLSkBMi0pATItKAEyLSgA'
-               b'Mi0oADItKAAyLSkAMi0pATItKQEyLSkAMi0pCDItKRAyLSkQMi0pEDIt'
-               b'KRAyLSkQMi0pEDItKRAyLSkQMi0pDzItKQMyLSkAMi0pBDItKQEyLSkA'
-               b'Mi0pAAAAAAAAAAAAAAAAAAAAAAAAAAAAMy0oADItKQAyLSkAMi0pAzIt'
-               b'KQIyLSkAMi0pADItKQAyLSkAMi0pAjItKQMyLSkAMi0pADMtKQAAAAAA'
-               b'AAAAAAAAAAAAAAAAAAAAADItKQAyLSkAMi0pATItKQQyLSkAMi0pBDIt'
-               b'KREyLSkSMi0pEjItKRIyLSkSMi0pEjItKRIyLSkSMi0pEjItKQkyLSkA'
-               b'Mi0pATItKQEyLSkAMi0oADItKAAyLSgAMi0oATItKQEyLSkBMi0pATIt'
-               b'KQEyLSkBMi0pATItKQEyLSkBMi0pATItKQIyLSkAMi0pCDItKYsyLSng'
-               b'Mi0p8jItKfQyLSn0Mi0p9DItKfQyLSn0Mi0p9DItKfQyLSn0Mi0p6TIt'
-               b'KbUyLSkpMi0pADItKQIzLSgAMy0oADItKAQzLSgBMy0oADMtKAAyLSoA'
-               b'AAAAAAAAAAAAAAAAAAAAAAAAAAAyLSkAMi0pAzItKQAyLSmKMi0p/zIt'
-               b'KfsyLSnzMi0p7zItKfAyLSnwMi0p8DItKfAyLSnwMi0p8DItKfAyLSn5'
-               b'Mi0p/zItKdUyLSkGMi0pADItKAAyLSgRMi0oYjItKC8yLSgAMi0oATIt'
-               b'KAAAAAAAAAAAAAAAAAAAAAAAAAAAADItKQEyLSkAMi0pAjItKdgyLSn/'
-               b'Mi0pTDItKQgyLSkQMi0pDzItKQ4yLSkOMi0pDjItKQ4yLSkPMi0pDjIt'
-               b'KRwyLSnTMi0p/zItKTgyLSkAMi0oADItKCEyLSh2Mi0oSDItKAAyLSgB'
-               b'Mi0pAAAAAAAAAAAAAAAAAAAAAAAAAAAAMi0pATItKQAyLSkOMi0p7jIt'
-               b'KfUyLSkTMi0pADItKQEAAAAAAAAAAAAAAAAAAAAAAAAAADItKQAyLSkD'
-               b'Mi0pADItKaoyLSn/Mi0pTTItKQAyLSgAMi0oFjItKG4yLShPMi0nADIt'
-               b'JwAyLSgAMi0oAAAAAAAAAAAAAAAAAAAAAAAyLSkBMi0pADItKRAyLSny'
-               b'Mi0p8zItKRYyLSkBMi0pBjItKQUyLSkFMi0pBTItKQUyLSkFMi0pBTIt'
-               b'KQgyLSkAMi0pqDItKf8yLSlRMi0pADItKAAyLSgJMi0oYzItKGMyLSgM'
-               b'Mi0oADItKAEyLSgAMS0nAAAAAAAAAAAAAAAAADItKQEyLSkAMi0pEDIt'
-               b'KfIyLSnyMi0pEDItKQAyLSkBAAAAAAAAAAAAAAAAAAAAAAAAAAAyLSkA'
-               b'Mi0pAzItKQAyLSmmMi0p/zItKVAyLSkAMi0oATItKAAyLShJMi0ocjIt'
-               b'KC0yLSgAMi0oAjItKAAyLSgAMy0oADItKAAyLSgAMi0pATItKQAyLSkR'
-               b'Mi0p8DItKfkyLSlvMi0pYzItKWYyLSllMi0pZTItKWUyLSllMi0pZTIt'
-               b'KWUyLSlnMi0pXDItKcgyLSn/Mi0pUjItKQAyLSgBMi0oADItKCAyLShu'
-               b'Mi0oXDItKAkyLSkAMi0oATItKAAyLSgAMi0oADItKAEyLSkBMi0pADIt'
-               b'KREyLSnuMi0p/zItKf4yLSn/Mi0p/zItKf8yLSn/Mi0p/zItKf8yLSn/'
-               b'Mi0p/zItKf8yLSn/Mi0p/DItKf8yLSlVMi0pADItKQAyLScAMi0nADIt'
-               b'KEoyLShyMi0oSDItKgEyLiMAMi0oAjItKAAyLSkEMi0pATItKQEyLSkA'
-               b'Mi0pETItKe8yLSn8Mi0pmTItKZAyLSmSMi0pkjItKZIyLSmSMi0pkjIt'
-               b'KZIyLSmSMi0pkzItKYwyLSnXMi0p/zItKVMyLSkAMi0oADItKAEyLSgA'
-               b'Mi0oDTItKF4yLShxMi0oSDItKAgyLSgAMi0oGDItKGQyLSgrMi0oADIt'
-               b'KQAyLSkQMi0p8TItKfIyLSkQMi0pADItKQEAAAAAAAAAAAAAAAAAAAAA'
-               b'AAAAADItKQAyLSkDMi0pADItKacyLSn/Mi0pTzItKQAyLSgAMi0oADIt'
-               b'KAEyLSgAMi0oFDItKF0yLShzMi0oXjItKCYyLSglMi0obTItKGMyLSgO'
-               b'Mi0pADItKQkyLSniMi0p/zItKSUyLSkAMi0pAgAAAAAAAAAAAAAAAAAA'
-               b'AAAAAAAAMi0pADItKQEyLSkAMi0pvzItKf8yLSlCMi0pADItJwAyLSgA'
-               b'Mi0oADItKAEyLSgAMi0oDDItKEkyLShuMi0oczItKGEyLShhMi0obDIt'
-               b'KEUyLSYAMi0pADItKa4yLSn/Mi0p0zItKaYyLSmmMi0ppjItKaYyLSmm'
-               b'Mi0ppjItKaYyLSmmMi0ppTItKb4yLSn/Mi0p8DItKRcyLSkAAAAAADEt'
-               b'KAAyLSgAMi0oADItKAEyLScANSwwADItKB4yLShIMi0oYzItKGoyLShv'
-               b'Mi0oXzItKQUyLSkAMi0pJzItKdkyLSn/Mi0p/jItKf8yLSn/Mi0p/zIt'
-               b'Kf8yLSn/Mi0p/zItKf8yLSn+Mi0p/zItKfgyLSliMi0pADItKQMAAAAA'
-               b'AAAAADEtKAAyLSgAMi0oADItKAEyLSgBKR8XADItKAAyLSgIMi0oFzIt'
-               b'KCIyLSgSMi0oADItKQEyLSkAMi0pCTItKTgyLSlPMi0pUTItKVAyLSlR'
-               b'Mi0pUTItKVEyLSlRMi0pUTItKVAyLSlEMi0pFzItKQAyLSkBMi0pAAAA'
-               b'AAAAAAAAAAAAADEuKQAyLSgAMi0pADItKQAyLSgBMi0oATItKAAyLSgA'
-               b'Mi0oADIuKAAyLSkAMi0pADItKQIyLSkBMi0pADItKQAAAAAAAAAAAAAA'
-               b'AAAAAAAAAAAAAAAAAAAAAAAAMi0pADItKQAyLSkAMi0pAzItKQAyLikA'
-               b'y/pKL6AAoZdAAEALgABgFYn0IAqIBDEEiAQgBIn0IUKAACCigAAvIYAA'
-               b'L5GJ9C+RgAAvkYAAT9JAAEABkAEv0kn0gAmAAgACS/IAAYn0AAGJ9C+R'
-               b'ifQAEYT0L5FFBAABQoQAASAEAAEgjC+RUAQvkagGAAHQAgAC6IUABfRS'
-               b'X9I=')
-
-    icon_ico = b64decode(icon_ico)
-    icon_ico = ImageTk.PhotoImage(data=icon_ico)
-    hwnd.tk.call('wm', 'iconphoto', root._w, icon_ico)
-
-class GUI:
-    def __init__(self, hwnd):
-
-        # GUI Initialize
-        InitGUI(hwnd)
-
-        ##Combox Var
-        self.ObsSelectBoxVar = StringVar()
-        self.DirectorySelectBoxVar = StringVar()
-        ##CheckButton Var
-        self.AskOrNotCheckButtonVar = IntVar()
-
-        # MainFrame Initialize
-        self.Mainframe0 = None
-        self.Mainframe1 = None
-        self.InitMainFrame(hwnd)
-
-        hwnd.protocol("WM_DELETE_WINDOW", hwnd.quit)
-        hwnd.mainloop()
-
-    def InitMainFrame(self, hwnd):
-
-        # FrameCrads Initialize
-        self.MainCradsOption = tk.ttk.Notebook(hwnd)
-
-        # Obs File Initialize
-        self.InitSingleObsCtrl(hwnd)
-        self.InitBatchObsCtrl(hwnd)
-
-        # FrameCrads Instantiate
-        self.MainCradsOption.add(self.Mainframe0, text='Single Convert')
-        self.MainCradsOption.add(self.Mainframe1, text='Batch Convert')
-        self.MainCradsOption.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx='2px', pady='0px')
-
-        # Execute Frame Initialize
-        self.InitExecFrame(hwnd)
-
-    def InitSingleObsCtrl(self, hwnd):
-
-        # MainFrame Initialize
-        self.Mainframe0 = ttk.Frame(hwnd)
-
-        # Obs File Select Frame Initialize
-        ObsSelectFrame1 = ttk.LabelFrame(self.Mainframe0, text='Object Observation of RINEX')
-        ObsSelectFrame1.pack(side=tk.TOP, fill=tk.X, padx='2px', pady='1px')
-
-        ObsFileSelectBox = ttk.Combobox(ObsSelectFrame1, width=46, height=4, values=('',),
-                                        textvariable=self.ObsSelectBoxVar)
-        ObsFileSelectBox.pack(side=tk.LEFT, anchor='w', padx='1px', pady='1px')
-
-        ObsFileSelectButton = ttk.Button(ObsSelectFrame1, text='...', width=3,
-                                         command=lambda: GetObsFilePath(ObsFileSelectBox))
-        ObsFileSelectButton.pack(side=tk.RIGHT, anchor='e', padx='1px', pady='1px')
-
-    def InitBatchObsCtrl(self, hwnd):
-
-        # MainFrame Initialize
-        self.Mainframe1 = ttk.Frame(hwnd)
-
-        # Obs FileS Select Frame Initialize
-        ObsSelectFrame1 = ttk.LabelFrame(self.Mainframe1, text='Objects Observation of RINEX')
-        ObsSelectFrame1.pack(side=tk.TOP, fill=tk.X, padx='2px', pady='1px')
-
+    def initCONVERT(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        self.Convertcards=tk.ttk.Notebook(self.hwnd)
         #
-        ObsCtrlFrame1 = ttk.Frame(ObsSelectFrame1)
-        ObsCtrlFrame1.pack(side=tk.RIGHT, fill=tk.Y, anchor='e', padx='1px', pady='0px')
-
-        ObsFileSelectButton = ttk.Button(ObsCtrlFrame1, text='...', width=3,
-                                         command=lambda: GetObsFilesPath(ObsPathsShow))
-        ObsFileSelectButton.pack(side=tk.TOP, anchor='e', padx='1px', pady='1px')
-
-        ObsFileClearButton = ttk.Button(ObsCtrlFrame1, text='x', width=3,
-                                         command=lambda: ClearObsFilesPath(ObsPathsShow))
-        ObsFileClearButton.pack(side=tk.BOTTOM, anchor='e', padx='1px', pady='1px')
-
+        # -------------------------------------------------------------------------------
+        self.SingleConv()
+        self.Convertcards.add(self.SingleFrame, text='Single Convert')
         #
-        ObsShowFrame1 = ttk.Frame(ObsSelectFrame1)
-        ObsShowFrame1.pack(side=tk.LEFT, fill=tk.Y, padx='1px', pady='0px')
+        # -------------------------------------------------------------------------------
+        self.BatchConv()
+        self.Convertcards.add(self.BatchFrame, text='Batch Convert')
+        self.Convertcards.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx='0px', pady='0px')
 
-        ScrollbarX = ttk.Scrollbar(ObsShowFrame1, orient=tk.HORIZONTAL)
+    def SingleConv(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        self.SingleFrame=ttk.Frame(self.hwnd)
+
+        ### Initialize of input frame
+        File_I_Frame=tk.LabelFrame(
+            self.SingleFrame,
+            text='Object Observation of RINEX')
+        File_I_Frame.pack(side=tk.TOP, fill=tk.X, padx='1px', pady='0px')
+
+        ### Initialize of input box
+        File_I_Box=ttk.Combobox(
+            File_I_Frame,
+            width=47,
+            height=4,
+            values=('',),
+            textvariable=self.File_I_BoxVar)
+        File_I_Box.pack(side=tk.LEFT, anchor='w', padx='1px', pady='1px')
+
+        ### Initialize of input Button
+        File_I_Bbutton=ttk.Button(
+            File_I_Frame,
+            text='...',
+            width=3,
+            command=lambda :self.func.Get_I_File(File_I_Box))
+        File_I_Bbutton.pack(side=tk.RIGHT, anchor='e', padx='1px', pady='1px')
+
+    def BatchConv(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        self.BatchFrame=ttk.Frame(self.hwnd)
+
+        ###
+        Files_I_Frame=tk.LabelFrame(
+            self.BatchFrame,
+            text='Objects Observation of RINEX')
+        Files_I_Frame.pack(side=tk.TOP, fill=tk.X, padx='1px', pady='0px')
+
+        ###
+        Files_I_CtrlFrame=ttk.Frame(Files_I_Frame)
+        Files_I_CtrlFrame.pack(side=tk.RIGHT, fill=tk.Y, anchor='e', padx='1px', pady='1px')
+
+        ###
+        Files_I_CtrlInput=ttk.Button(
+            Files_I_CtrlFrame,
+            text='...',
+            width=3,
+            command=lambda :self.func.Get_I_Files(Files_I_ShowText))
+        Files_I_CtrlInput.pack(side=tk.TOP, anchor='e', padx='1px', pady='1px')
+
+        Files_I_CtrlClear=ttk.Button(
+            Files_I_CtrlFrame,
+            text='x',
+            width=3,
+            command=lambda :self.func.Clear_I_Files(Files_I_ShowText))
+        Files_I_CtrlClear.pack(side=tk.BOTTOM, anchor='e', padx='1px', pady='1px')
+
+        ###
+        Files_I_ShowFrame=ttk.Frame(Files_I_Frame)
+        Files_I_ShowFrame.pack(side=tk.LEFT, fill=tk.X, anchor='e', padx='1px', pady='1px')
+
+        ###
+        ScrollbarX=ttk.Scrollbar(Files_I_ShowFrame,orient=tk.HORIZONTAL)
         ScrollbarX.pack(side=tk.BOTTOM, fill=tk.X)
-
-        ScrollbarY = ttk.Scrollbar(ObsShowFrame1)
+        ScrollbarY=ttk.Scrollbar(Files_I_ShowFrame)
         ScrollbarY.pack(side=tk.RIGHT, fill=tk.Y)
 
-        ObsPathsShow = tk.Text(ObsShowFrame1, xscrollcommand=ScrollbarX.set, yscrollcommand=ScrollbarY.set,
-                               height=4 ,wrap='none')
-        ObsPathsShow.pack(side=tk.LEFT, fill=tk.X,anchor='w', padx='1px', pady='1px')
+        ###
+        Files_I_ShowText=tk.Text(
+            Files_I_ShowFrame,
+            xscrollcommand=ScrollbarX.set,
+            yscrollcommand=ScrollbarY.set,
+            height=4, wrap='none')
+        Files_I_ShowText.pack(side=tk.LEFT, fill=tk.X, anchor='w', padx='1px', pady='1px')
+        ScrollbarX.config(command=Files_I_ShowText.xview)
+        ScrollbarY.config(command=Files_I_ShowText.yview)
 
-        ScrollbarX.config(command=ObsPathsShow.xview)
-        ScrollbarY.config(command=ObsPathsShow.yview)
-
-    def InitExecFrame(self, hwnd):
-
+    def initExecCtrl(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        self.ExecFrame=ttk.Frame(self.hwnd)
+        self.ExecFrame.pack(side=tk.TOP, fill=tk.X, padx='1px', pady='0px')
         #
-        BottomExecFrame = ttk.Frame(hwnd)
-        BottomExecFrame.pack(side=tk.TOP, expand=tk.YES, fill=tk.X, padx='1px', pady='0px')
+        # -------------------------------------------------------------------------------
+        self.ConvOut()
+        #
+        # -------------------------------------------------------------------------------
+        self.ExecCtrl()
 
-        # Output Directory Frame Initialize
-        AskDirectoryFrame1 = ttk.LabelFrame(BottomExecFrame, text='Output directory')
-        AskDirectoryFrame1.pack(side=tk.TOP, expand=tk.YES, fill=tk.X, padx='1px', pady='0px')
+    def ConvOut(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        ###
+        File_O_Frame=tk.LabelFrame(
+            self.ExecFrame,
+            text='Output directory')
+        File_O_Frame.pack(side=tk.TOP, fill=tk.X, padx='1px', pady='1px')
 
-        ## CheckButton Initialize
-        AskOrNotCheckButton = ttk.Checkbutton(AskDirectoryFrame1, text='Directory',
-                                              variable=self.AskOrNotCheckButtonVar, onvalue=1, offvalue=0,
-                                              command=lambda: AskOrNotCheck(self.AskOrNotCheckButtonVar,
-                                                                            AskDirectorySelectBox,
-                                                                            AskDirectorySelectButton))
-        AskOrNotCheckButton.pack(side=tk.LEFT, anchor='w', padx='1px', pady='0px')
+        ###
+        File_O_yn=ttk.Checkbutton(
+            File_O_Frame,
+            text='Directory',
+            variable=self.File_O_ynVar,
+            onvalue=1,
+            offvalue=0,
+            command=lambda :self.func.Enable_YN(
+                self.File_O_ynVar,
+                File_O_Box,
+                File_O_Button))
+        File_O_yn.pack(side=tk.LEFT, anchor='w', padx='1px', pady='0px')
 
-        ## SelectBox Initialize
-        AskDirectorySelectBox = ttk.Combobox(AskDirectoryFrame1, width=36, height=4, values=('',),
-                                             state=tk.DISABLED, textvariable=self.DirectorySelectBoxVar)
-        AskDirectorySelectBox.pack(side=tk.LEFT, anchor='w', padx='1px', pady='0px')
+        ###
+        File_O_Box=ttk.Combobox(
+            File_O_Frame,
+            width=36,
+            height=4,
+            values=('',),
+            state=tk.DISABLED,
+            textvariable=self.File_O_BoxVar)
+        File_O_Box.pack(side=tk.LEFT, anchor='w', padx='1px', pady='0px')
 
-        ## SelectButton Initialize
-        AskDirectorySelectButton = ttk.Button(AskDirectoryFrame1, text='...', width=3,
-                                              state=tk.DISABLED, command=lambda: AskDirectory(AskDirectorySelectBox))
-        AskDirectorySelectButton.pack(side=tk.RIGHT, anchor='e', padx='2px', pady='0px')
+        ###
+        File_O_Button=ttk.Button(
+            File_O_Frame,
+            text='...',
+            width=3,
+            state=tk.DISABLED,
+            command=lambda :self.func.Get_O_Dir(File_O_Box))
+        File_O_Button.pack(side=tk.RIGHT, anchor='e', padx='1px', pady='0px')
 
-        # The bottom control buttons
-        BottomCtrFrame0 = ttk.Frame(BottomExecFrame)
-        BottomCtrFrame0.pack(side=tk.TOP, expand=tk.YES, fill=tk.X, padx='1px', pady='0px')
+    def ExecCtrl(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method:
+        # Brief :
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
+        CtrlButtonFrame=ttk.Frame(self.ExecFrame)
+        CtrlButtonFrame.pack(side=tk.TOP, fill=tk.X, padx='1px', pady='0px')
+        Conv_Option = ttk.Button(
+            CtrlButtonFrame,
+            image=self.iconoptions,
+            width=3,
+            command=lambda :instanceOPT(self.hwnd,self.func)
+        )
+        Conv_Option.pack(side=tk.RIGHT, padx='1px', pady='0px')
+        ###
+        Conv_Button=ttk.Button(
+            CtrlButtonFrame,
+            text='Convert',
+            width=10,
+            command=lambda :self.func._Convert(
+                self.Pro_style,
+                self.File_O_ynVar,
+                self.File_I_BoxVar,
+                self.File_O_BoxVar,
+                self.Convertcards,
+                self.Exec_Progress))
+        Conv_Button.pack(side=tk.RIGHT, padx='1px', pady='0px')
+        ###
+        Exit_button=ttk.Button(
+            CtrlButtonFrame,
+            text='Exit',
+            width=10,
+            command=self.hwnd.quit)
+        Exit_button.pack(side=tk.LEFT, padx='1px', pady='0px')
 
-        ConvertButton = ttk.Button(BottomCtrFrame0, text='Convert', width=8,
-                                   command=lambda: _ConvertFile(ConvertState,
-                                                                self.ObsSelectBoxVar,
-                                                                self.AskOrNotCheckButtonVar,
-                                                                self.DirectorySelectBoxVar,
-                                                                self.MainCradsOption))
-        ConvertButton.pack(side=tk.RIGHT, expand=tk.YES, padx='1px', pady='0px')
+        ###
+        StateFrame=ttk.Frame(self.ExecFrame)
+        StateFrame.pack(side=tk.TOP, fill=tk.X, padx='1px', pady='4px')
+        self.Pro_style=ttk.Style(StateFrame)
+        self.Pro_style.layout(
+            'text.Horizontal.TProgressbar',
+            [
+                ('Horizontal.Progressbar.trough',
+                    {'children': [('Horizontal.Progressbar.pbar',{'side': 'left', 'sticky': 'ns'})],
+                     'sticky': 'nswe'}
+                ),
+                ('Horizontal.Progressbar.label',{'sticky': ''})
+            ]
+        )
+        self.Pro_style.configure('text.Horizontal.TProgressbar', text='No task.')
+        self.Exec_Progress=ttk.Progressbar(
+            StateFrame,
+            value=0,
+            length=400,
+            maximum=100,
+            mode='determinate',
+            style='text.Horizontal.TProgressbar')
+        self.Exec_Progress.pack(side=tk.LEFT)
 
-        ExitButton = ttk.Button(BottomCtrFrame0, text='Exit', width=8,
-                                command=hwnd.quit)
-        ExitButton.pack(side=tk.RIGHT, expand=tk.YES, padx='1px', pady='0px')
+class OPTIONS:
+    def __init__(self, parenthwnd, func):
+        # init
+        # -------------------------------------------------------------------------------
+        self.func=func
+        self.parenthwnd=parenthwnd
 
-        # Convert state bar
-        StateFrame = ttk.Frame(BottomExecFrame)
-        StateFrame.pack(side=tk.TOP, fill=tk.X, padx='1px', pady='0px')
-        ConvertState = ttk.Label(StateFrame, text="None")
-        ConvertState.pack(side=tk.LEFT, anchor='nw')
+        self.opthwnd=None
+        self.OptFrame=None
+        self.ExeFrame=None
+        self.MainFrame=None
+        self.I_RINEX_Box=None
+        self.O_RINEX_Box=None
 
+        self.initGUI()
+
+    def initGUI(self):
+        self.opthwnd=tk.Toplevel(self.parenthwnd)
+        self.opthwnd.title("Options")
+        self.opthwnd.resizable(0, 0)
+        self.func.Move_center(self.opthwnd, 310, 110)
+
+        icon_ico=(b'AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                  b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                  b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOrq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6'
+                  b'urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v+CgoL/dnZ2/1RUVP9UVFT/VFRU/1RUVP9UVFT/VFRU/1RUVP9UVFT/VFRU'
+                  b'/1RUVP9UVFT/VFRU/3Z2dv+CgoL/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8P'
+                  b'Dw//Dw8P/w8PD/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                  b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6urq/+rq6v/q6'
+                  b'ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/4KCgv92dnb/VFRU/1RUVP9UVFT/'
+                  b'VFRU/1RUVP9UVFT/VFRU/1RUVP9UVFT/VFRU/1RUVP9UVFT/dnZ2/4KCgv/Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8P'
+                  b'D/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+                  b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6urqGAAAAAAAAAAAAAAAAAAAA'
+                  b'AAAAAAAAAAAAAAAAADq6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q'
+                  b'6ur/goKC/3Z2dv9UVFT/VFRU/1RUVP9UVFT/VFRU/1RUVP9UVFT/VFRU/1RUVP9UVFT/VFRU/1RUVP92dnb/goKC/8PDw//Dw8P'
+                  b'/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw//Dw8P/w8PD/8PDw/8AAAAAAAAAAAAAAAAAAAAAAA'
+                  b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//8AAP//AAAAAAAAAAAAAAAAAAD//wAA//8AA'
+                  b'AAAAAAAAAAAAAAAAP//AAD/fwAAAAAAAAAAAAAAAAAA//8AAA==')
+        icon_ico=b64decode(icon_ico)
+        icon_ico=ImageTk.PhotoImage(data=icon_ico)
+        self.opthwnd.tk.call('wm', 'iconphoto', self.opthwnd._w, icon_ico)
+
+        self.MainFrame=ttk.Frame(self.opthwnd)
+        self.MainFrame.pack()
+
+        self.initOPTIONS()
+        self.initEXECTRL()
+
+    def initOPTIONS(self):
+        self.OptFrame=ttk.Frame(self.MainFrame)
+        self.OptFrame.pack(side=tk.TOP, fill=tk.BOTH)
+        #
+        # -------------------------------------------------------------------------------
+        I_FormatFrame = tk.LabelFrame(
+            self.OptFrame,
+            text='Origin Format')
+        I_FormatFrame.pack(side=tk.LEFT, expand=tk.YES, padx='2px')
+
+        Rnx_I_Frame=ttk.Frame(I_FormatFrame)
+        Rnx_I_Frame.pack(side=tk.TOP, fill=tk.X, pady='2px', padx='2px')
+
+        I_RINEX = ttk.Label(
+            Rnx_I_Frame,
+            text='RINEX:',
+            style='I_RINEX.TLabel')
+        I_RINEX.pack(side=tk.LEFT)
+
+
+        self.I_RINEX_Box = ttk.Combobox(
+            Rnx_I_Frame,
+            width=10,
+            values=I_RINEX_BoxList)
+        self.I_RINEX_Box.set(I_RINEX_BoxList[I_Format_Rnx_List])
+        self.I_RINEX_Box.pack(side=tk.RIGHT)
+
+        Rtc_I_Frame=ttk.Frame(I_FormatFrame)
+        Rtc_I_Frame.pack(side=tk.TOP, fill=tk.X, pady='2px', padx='2px')
+
+        I_RTCM = ttk.Label(
+            Rtc_I_Frame,
+            text='RTCM :',
+            style='I_RTCM.TLabel')
+        I_RTCM.pack(side=tk.LEFT)
+
+        I_RTCM_BoxList = ['2.xx', '3.xx', '4.xx']
+        I_RTCM_Box = ttk.Combobox(
+            Rtc_I_Frame,
+            width=10,
+            state=tk.DISABLED,
+            values=I_RTCM_BoxList)
+        I_RTCM_Box.set(I_RTCM_BoxList[0])
+        I_RTCM_Box.pack(side=tk.RIGHT)
+        #
+        # -------------------------------------------------------------------------------
+        O_FormatFrame = tk.LabelFrame(
+            self.OptFrame,
+            text='Target Format')
+        O_FormatFrame.pack(side=tk.RIGHT, expand=tk.YES, padx='2px')
+
+        Rnx_O_Frame=ttk.Frame(O_FormatFrame)
+        Rnx_O_Frame.pack(side=tk.TOP, fill=tk.X, pady='2px', padx='2px')
+
+        O_RINEX=ttk.Label(
+            Rnx_O_Frame,
+            text='RINEX:',
+            style='I_RINEX.TLabel')
+        O_RINEX.pack(side=tk.LEFT)
+
+        self.O_RINEX_Box=ttk.Combobox(
+            Rnx_O_Frame,
+            width=10,
+            values=I_RINEX_BoxList)
+        self.O_RINEX_Box.set(O_RINEX_BoxList[O_Format_Rnx_List])
+        self.O_RINEX_Box.pack(side=tk.RIGHT)
+
+        Rtc_O_Frame=ttk.Frame(O_FormatFrame)
+        Rtc_O_Frame.pack(side=tk.TOP, fill=tk.X, pady='2px', padx='2px')
+
+        O_RTCM=ttk.Label(
+            Rtc_O_Frame,
+            text='RTCM :',
+            style='I_RTCM.TLabel')
+        O_RTCM.pack(side=tk.LEFT)
+
+        O_RTCM_BoxList=['2.xx', '3.xx', '4.xx']
+        O_RTCM_Box=ttk.Combobox(
+            Rtc_O_Frame,
+            width=10,
+            state=tk.DISABLED,
+            values=O_RTCM_BoxList)
+        O_RTCM_Box.set(I_RTCM_BoxList[0])
+        O_RTCM_Box.pack(side=tk.RIGHT)
+
+    def initEXECTRL(self):
+        self.ExeFrame=ttk.Frame(self.MainFrame)
+        self.ExeFrame.pack(side=tk.TOP, fill=tk.X, pady='2px', padx='2px')
+
+        Cancel_Button = ttk.Button(
+            self.ExeFrame,
+            text='Cancel',
+            command=self.opthwnd.destroy)
+        Cancel_Button.pack(side=tk.LEFT)
+
+        Confirm_Button = ttk.Button(
+            self.ExeFrame,
+            text='Confirm',
+            command=lambda :[
+                self.Get_IO_Format(),
+                self.opthwnd.destroy()
+            ])
+        Confirm_Button.pack(side=tk.RIGHT)
+
+    def Get_IO_Format(self):
+        global I_Format_Rnx_List, O_Format_Rnx_List
+        I_Format_Rnx_List=I_RINEX_BoxList.index(self.I_RINEX_Box.get())
+        O_Format_Rnx_List=O_RINEX_BoxList.index(self.O_RINEX_Box.get())
 
 if __name__ == "__main__":
-    # Main window
-    root = tk.Tk()
-    myGUI = GUI(root)
+    root=tk.Tk()
+    call=CALLBACK()
 
-
-
+    initGUI=MAINGUI(root, call)
