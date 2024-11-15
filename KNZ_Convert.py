@@ -27,9 +27,9 @@ I_Box_Counter=0
 O_Box_Counter=0
 #
 I_Format_Rnx_List=0
-I_RINEX_BoxList=['2.10','2.11','3.03','3.04','3.05']
+I_RINEX_BoxList=['2','3']
 O_Format_Rnx_List=0
-O_RINEX_BoxList=['2.10','2.11','3.03','3.04','3.05']
+O_RINEX_BoxList=['2.10','2.11','2.12','3.00','3.01','3.02','3.03','3.04','3.05']
 # ---------------------------------------------------------------------------------------
 def instanceOPT(parenthwnd, func):
     OPTIONS(parenthwnd, func)
@@ -164,6 +164,9 @@ class CALLBACK:
         ErrorMsg=''
         OutDirec=''
         out_path=''
+        Pro_style.configure(
+            'text.Horizontal.TProgressbar',
+            text='Converting...')
         Exec_Progress.config(value=0)
         if Convertcards.index('current')==0:
             if not File_I_BoxVar.get(): ErrorMsg+=' path'
@@ -181,7 +184,10 @@ class CALLBACK:
             Pro_style.configure('text.Horizontal.TProgressbar', text=ErrorMsg)
             return
         ###
-        resqueue = queue.Queue()
+        resqueue=queue.Queue()
+        Pro_style.configure(
+            'text.Horizontal.TProgressbar',
+            text='Converting...')
         for in_path in InPath:
             if OutDirec:
                 out_path=OutDirec+'COV-'+self.Dir_or_name_get(in_path,0)
@@ -203,7 +209,7 @@ class CALLBACK:
             #Exec_Progress.config(value=0)
             Pro_style.configure(
                 'text.Horizontal.TProgressbar',
-                text='Complete !  %d successful, %d fails'%(State_O, len(InPath)-State_O))
+                text='Complete !    %d successful.    %d fails.'%(State_O, len(InPath)-State_O))
 
     def _Convert(
             self,
@@ -283,13 +289,13 @@ class MAINGUI:
     def initGUI(self):
         # -------------------------------------------------------------------------------
         # >
-        # Method:
-        # Brief :
+        # Method: initGUI
+        # Brief : init of main gui
         # Author: @KenanZhu All Right Reserved.
         # -------------------------------------------------------------------------------
         self.hwnd.title("KNZ_Convert")
         self.hwnd.resizable(0, 0)
-        self.func.Move_center(self.hwnd, 400, 230)
+        self.func.Move_center(self.hwnd, 400, 243)
         ###
         icon_ico = (b'AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAAABAAADjsAAA47AAAAAAAAAAAAAAAAAAAAAAAAAAAA'
                     b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
@@ -364,16 +370,16 @@ class MAINGUI:
     def initCONVERT(self):
         # -------------------------------------------------------------------------------
         # >
-        # Method:
-        # Brief :
+        # Method: initCONVERT
+        # Brief : init of convert gui
         # Author: @KenanZhu All Right Reserved.
         # -------------------------------------------------------------------------------
         self.Convertcards=tk.ttk.Notebook(self.hwnd)
-        #
+        # Single convert
         # -------------------------------------------------------------------------------
         self.SingleConv()
         self.Convertcards.add(self.SingleFrame, text='Single Convert')
-        #
+        # Batch convert
         # -------------------------------------------------------------------------------
         self.BatchConv()
         self.Convertcards.add(self.BatchFrame, text='Batch Convert')
@@ -382,8 +388,8 @@ class MAINGUI:
     def SingleConv(self):
         # -------------------------------------------------------------------------------
         # >
-        # Method:
-        # Brief :
+        # Method: SingleConv
+        # Brief : Contrls of single convert
         # Author: @KenanZhu All Right Reserved.
         # -------------------------------------------------------------------------------
         self.SingleFrame=ttk.Frame(self.hwnd)
@@ -414,8 +420,8 @@ class MAINGUI:
     def BatchConv(self):
         # -------------------------------------------------------------------------------
         # >
-        # Method:
-        # Brief :
+        # Method: BatchConv
+        # Brief : Contrls of batch convert
         # Author: @KenanZhu All Right Reserved.
         # -------------------------------------------------------------------------------
         self.BatchFrame=ttk.Frame(self.hwnd)
@@ -460,16 +466,16 @@ class MAINGUI:
             Files_I_ShowFrame,
             xscrollcommand=ScrollbarX.set,
             yscrollcommand=ScrollbarY.set,
-            height=4, wrap='none')
-        Files_I_ShowText.pack(side=tk.LEFT, fill=tk.X, anchor='w', padx='1px', pady='1px')
+            height=4, wrap='none', font=('Segoe UI',9))
+        Files_I_ShowText.pack(side=tk.LEFT, fill=tk.BOTH, anchor='w', padx='1px', pady='1px')
         ScrollbarX.config(command=Files_I_ShowText.xview)
         ScrollbarY.config(command=Files_I_ShowText.yview)
 
     def initExecCtrl(self):
         # -------------------------------------------------------------------------------
         # >
-        # Method:
-        # Brief :
+        # Method: initExecCtrl
+        # Brief : init of contrls
         # Author: @KenanZhu All Right Reserved.
         # -------------------------------------------------------------------------------
         self.ExecFrame=ttk.Frame(self.hwnd)
@@ -484,8 +490,8 @@ class MAINGUI:
     def ConvOut(self):
         # -------------------------------------------------------------------------------
         # >
-        # Method:
-        # Brief :
+        # Method: ConvOut
+        # Brief : Contrls of output
         # Author: @KenanZhu All Right Reserved.
         # -------------------------------------------------------------------------------
         ###
@@ -529,8 +535,8 @@ class MAINGUI:
     def ExecCtrl(self):
         # -------------------------------------------------------------------------------
         # >
-        # Method:
-        # Brief :
+        # Method: ExecCtrl
+        # Brief : Contrls of exe
         # Author: @KenanZhu All Right Reserved.
         # -------------------------------------------------------------------------------
         CtrlButtonFrame=ttk.Frame(self.ExecFrame)
@@ -577,7 +583,11 @@ class MAINGUI:
                 ('Horizontal.Progressbar.label',{'sticky': ''})
             ]
         )
-        self.Pro_style.configure('text.Horizontal.TProgressbar', text='No task.')
+        self.Pro_style.configure(
+            'text.Horizontal.TProgressbar',
+            text='No task.',
+            foreground='#000000',
+            font=('Segoe UI',9))
         self.Exec_Progress=ttk.Progressbar(
             StateFrame,
             value=0,
@@ -604,11 +614,18 @@ class OPTIONS:
         self.initGUI()
 
     def initGUI(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method: initGUI
+        # Brief : init of main gui
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
         self.opthwnd=tk.Toplevel(self.parenthwnd)
         self.opthwnd.title("Options")
         self.opthwnd.resizable(0, 0)
         self.func.Move_center(self.opthwnd, 310, 110)
 
+        ### Set icon
         icon_ico=(b'AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
                   b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
                   b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOrq6v/q6ur/6urq/+rq6v/q6ur/6urq/+rq6v/q6ur/6'
@@ -629,98 +646,113 @@ class OPTIONS:
         icon_ico=ImageTk.PhotoImage(data=icon_ico)
         self.opthwnd.tk.call('wm', 'iconphoto', self.opthwnd._w, icon_ico)
 
+        ### Mian frame
         self.MainFrame=ttk.Frame(self.opthwnd)
         self.MainFrame.pack()
 
+        ### init
         self.initOPTIONS()
         self.initEXECTRL()
 
     def initOPTIONS(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method: initOPTIONS
+        # Brief : Init options of format choose
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
         self.OptFrame=ttk.Frame(self.MainFrame)
         self.OptFrame.pack(side=tk.TOP, fill=tk.BOTH)
-        #
         # -------------------------------------------------------------------------------
-        I_FormatFrame = tk.LabelFrame(
+        # Origin format frame
+        # -------------------------------------------------------------------------------
+        I_FormatFrame=tk.LabelFrame(
             self.OptFrame,
             text='Origin Format')
         I_FormatFrame.pack(side=tk.LEFT, expand=tk.YES, padx='2px')
 
+
         Rnx_I_Frame=ttk.Frame(I_FormatFrame)
         Rnx_I_Frame.pack(side=tk.TOP, fill=tk.X, pady='2px', padx='2px')
-
-        I_RINEX = ttk.Label(
+        I_RINEX=ttk.Label(
             Rnx_I_Frame,
             text='RINEX:',
             style='I_RINEX.TLabel')
         I_RINEX.pack(side=tk.LEFT)
-
-
-        self.I_RINEX_Box = ttk.Combobox(
+        self.I_RINEX_Box=ttk.Combobox(
             Rnx_I_Frame,
             width=10,
             values=I_RINEX_BoxList)
         self.I_RINEX_Box.set(I_RINEX_BoxList[I_Format_Rnx_List])
+        self.I_RINEX_Box['state']='readonly'
         self.I_RINEX_Box.pack(side=tk.RIGHT)
+
 
         Rtc_I_Frame=ttk.Frame(I_FormatFrame)
         Rtc_I_Frame.pack(side=tk.TOP, fill=tk.X, pady='2px', padx='2px')
-
-        I_RTCM = ttk.Label(
+        I_RTCM=ttk.Label(
             Rtc_I_Frame,
             text='RTCM :',
             style='I_RTCM.TLabel')
         I_RTCM.pack(side=tk.LEFT)
-
-        I_RTCM_BoxList = ['2.xx', '3.xx', '4.xx']
-        I_RTCM_Box = ttk.Combobox(
+        I_RTCM_BoxList=['2', '3', '4']
+        I_RTCM_Box=ttk.Combobox(
             Rtc_I_Frame,
             width=10,
             state=tk.DISABLED,
             values=I_RTCM_BoxList)
         I_RTCM_Box.set(I_RTCM_BoxList[0])
+        #I_RTCM_Box['state']='readonly'
         I_RTCM_Box.pack(side=tk.RIGHT)
-        #
+        # -------------------------------------------------------------------------------
+        # Target format frame
         # -------------------------------------------------------------------------------
         O_FormatFrame = tk.LabelFrame(
             self.OptFrame,
             text='Target Format')
         O_FormatFrame.pack(side=tk.RIGHT, expand=tk.YES, padx='2px')
 
+
         Rnx_O_Frame=ttk.Frame(O_FormatFrame)
         Rnx_O_Frame.pack(side=tk.TOP, fill=tk.X, pady='2px', padx='2px')
-
         O_RINEX=ttk.Label(
             Rnx_O_Frame,
             text='RINEX:',
             style='I_RINEX.TLabel')
         O_RINEX.pack(side=tk.LEFT)
-
         self.O_RINEX_Box=ttk.Combobox(
             Rnx_O_Frame,
             width=10,
-            values=I_RINEX_BoxList)
+            values=O_RINEX_BoxList)
         self.O_RINEX_Box.set(O_RINEX_BoxList[O_Format_Rnx_List])
+        self.O_RINEX_Box['state']='readonly'
         self.O_RINEX_Box.pack(side=tk.RIGHT)
+
 
         Rtc_O_Frame=ttk.Frame(O_FormatFrame)
         Rtc_O_Frame.pack(side=tk.TOP, fill=tk.X, pady='2px', padx='2px')
-
         O_RTCM=ttk.Label(
             Rtc_O_Frame,
             text='RTCM :',
             style='I_RTCM.TLabel')
         O_RTCM.pack(side=tk.LEFT)
-
-        O_RTCM_BoxList=['2.xx', '3.xx', '4.xx']
+        O_RTCM_BoxList=['2', '3', '4']
         O_RTCM_Box=ttk.Combobox(
             Rtc_O_Frame,
             width=10,
             state=tk.DISABLED,
             values=O_RTCM_BoxList)
         O_RTCM_Box.set(I_RTCM_BoxList[0])
+        #O_RTCM_Box['state']='readonly'
         O_RTCM_Box.pack(side=tk.RIGHT)
 
     def initEXECTRL(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method: initEXECTRL
+        # Brief : Init the gui of contrl frame
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
         self.ExeFrame=ttk.Frame(self.MainFrame)
         self.ExeFrame.pack(side=tk.TOP, fill=tk.X, pady='2px', padx='2px')
 
@@ -740,6 +772,12 @@ class OPTIONS:
         Confirm_Button.pack(side=tk.RIGHT)
 
     def Get_IO_Format(self):
+        # -------------------------------------------------------------------------------
+        # >
+        # Method: Get_IO_Format
+        # Brief : Get the origin & target file format
+        # Author: @KenanZhu All Right Reserved.
+        # -------------------------------------------------------------------------------
         global I_Format_Rnx_List, O_Format_Rnx_List
         I_Format_Rnx_List=I_RINEX_BoxList.index(self.I_RINEX_Box.get())
         O_Format_Rnx_List=O_RINEX_BoxList.index(self.O_RINEX_Box.get())

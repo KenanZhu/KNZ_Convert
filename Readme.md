@@ -21,9 +21,12 @@ do not modify the information.
 ![image](Convert_chart.png)
 
 ### About Project ###
-At present, the RINEX2.xx format conversion has been fully supported,
+2024/11/14: At present, the RINEX2.xx format conversion has been fully supported,
 the format output error of the previous version has been modified,
 and the conversion from 2.xx to 3.xx is currently supported.
+
+2024/11/15: Correct the output format, omit the empty observation and change the
+rule of match.
 
 ### Update plan ###
 1. 2.xx and 3.xx versions are fully supported, and support mutual conversion.
