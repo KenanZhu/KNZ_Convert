@@ -59,7 +59,9 @@ Tip: if need to use RINEX file of strict format, you are supposed to be not use 
 2024/11/14: Currently, full support for RINEX 2.xx format conversion has been implemented, and
             the format output errors of the previous version have been corrected. Currently, 
             support for converting RINEX 2.xx to RINEX 3.xx is available.
+            
 2024/11/15: Corrected output format, ignored RINEX 2.xx free signals and changed matching rules.
+
 2024/11/17: Supports conversion between RINEX2.xx format and RINEX3.xx format, and also supports
             conversion between the same major versions.
 
