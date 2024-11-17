@@ -18,15 +18,16 @@ the file is lossless conversion, only convert the foemat,
 do not modify the information. 
 2. The double character observation types of RINEX2.xx version will be automatically matched according to the following table:
 
-[Convert_chart.jpg](Convert_chart.jpg)
-
-### About Project ###
+### Update brief ###
 2024/11/14: At present, the RINEX2.xx format conversion has been fully supported,
 the format output error of the previous version has been modified,
 and the conversion from 2.xx to 3.xx is currently supported.
 
 2024/11/15: Correct the output format, omit the empty observation and change the
 rule of match.
+
+2024/11/17: Fully support the conversion of RINEX 2.xx & RINEX 3.xx, also support
+the conversion of same major version.
 
 ### Update plan ###
 1. 2.xx and 3.xx versions are fully supported, and support mutual conversion.
