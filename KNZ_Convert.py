@@ -5,7 +5,7 @@
 # Copyright (c) 2024 - 2024 KenanZhu. All Right Reserved.
 #
 # @ Author         : KenanZhu
-# @ Time           : 2024/11/13
+# @ Time stamp     : [2024/11/13] First release.
 # @ IDE            : PyCharm
 #
 # ----------------------------------------------------------------------------------------

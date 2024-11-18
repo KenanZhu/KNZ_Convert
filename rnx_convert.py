@@ -13,7 +13,19 @@
 #                  : [2024/11/17] Add new: complish the funtions of convert
 #                                 form RINEX 3.xx to RINEX 2.xx and also support 
 #                                 convert in major version of RINEX.
-#                  :
+#                  : [2024/11/18] Fix bug: correct the bug when Convert RINEX file
+#                                 with comment in the middle of data will cause 
+#                                 crash.
+#                                 Correct: correct the mistake in the functions
+#                                 below:
+#                                       1. Correct function: getsys_rnx3()
+#                                       2. Correct function: obstype3_conv()
+#                                       3. Correct function: rnx2uni3_data()
+#                                       4. Correct function: rnx2_data2uni()
+#                                       5. Correct function: rnx3rnx2_data()
+#                                 Optimze: enhance the speed of converting.
+#
+# 
 # @ IDE/Editor     : PyCharm / VisualStudio Code
 #
 # ----------------------------------------------------------------------------------------
@@ -29,7 +41,7 @@ bnk=' '
 # Get local time of converting ----------------------- #
 def conv_time():
   # generate convert timestamp
-  covpro='KNZ_Convert ver1.2.5'
+  covpro='KNZ_Convert ver1.2.6'
   covcom='COMMENT'
 
   # Get the locate time and transform to Uni-format
@@ -176,6 +188,7 @@ def obstype2_conv(inline, in_f, omilist):
       outline+=obstypex[i]+bnk
       if   (i+1)==num:
         bnx=((13-num%13)*4+1)*bnk
+        if num%13==0: bnx=bnk
         outlines.append(outline+bnx+obsobs+'\n')
         outline=0*bnk
       elif (i+1)%13==0:
@@ -241,6 +254,11 @@ def rnx2_data2uni(in_f, outlines, omilist, obsnum):
   # return false when file end
   inline=in_f.readline()
   if not inline: return False
+  if not inline[28:29]=='0':
+    outlines.append(inline)
+    for i in range(int(inline[29:32])):
+      outlines.append(in_f.readline())
+    return True
 
   # get epoch message & flag state
   year  =  int(inline[0               :3])
@@ -306,10 +324,8 @@ def rnx2_data2uni(in_f, outlines, omilist, obsnum):
   return True
 
 # Convert Uni-format to RINEX 3.xx --------------------- #
-def uni2rnx3_data(outlines, out_path):
-  out_f=open(out_path, 'a')
+def uni2rnx3_data(outlines, out_f):
   out_f.writelines(outlines)
-  out_f.close()
   return
 
 # Get observ type need be omitted --------------------- #
@@ -329,8 +345,9 @@ def rnx2des(in_path, out_path, oriver, desver):
   headread=False
   outlines=[]
   omilist=[]
-  # convert RINEX 2.xx(header) to Uni-format
   in_f=open(in_path, 'r')
+  out_f=open(out_path, 'a')
+  # convert RINEX 2.xx(header) to Uni-format
   match rnx2_head2uni(in_f, desver, outlines, omilist):
     case 1: headread=True
     case 0: headread=False
@@ -338,25 +355,23 @@ def rnx2des(in_path, out_path, oriver, desver):
   if       headread:
   # convert Uni-foramt(header) to Des-format
     match desver[0:1]:
-          case '2': addemp=uni2rnx2_data(4, outlines, out_path, True, None)
-          case '3': uni2rnx3_data(outlines, out_path)
+          case '2': addemp=uni2rnx2_data(4, outlines, out_f, True, None)
+          case '3': uni2rnx3_data(outlines, out_f)
     outlines=[]
     # get each observ type and omit the empty
     obsnum=omilist[0]
     omilist.pop(0)
     getomit(omilist)
-    
     # convert RINEX 2.xx(data) to Uni-format
     while rnx2_data2uni(in_f, outlines, omilist, obsnum):
       # convert Uni-foramt(data) to Des-format
       match desver[0:1]:
-        case '2': uni2rnx2_data(4, outlines, out_path, False, addemp)
-        case '3': uni2rnx3_data(outlines, out_path)
+        case '2': uni2rnx2_data(4, outlines, out_f, False, addemp)
+        case '3': uni2rnx3_data(outlines, out_f)
       outlines=[]
-
   elif not headread: return 0
-
   in_f.close()
+  out_f.close()
   return 1
 
 # Get the position of new add observ type ----------------- #
@@ -444,9 +459,9 @@ def obsfmt3_conv(alltypes):
 
 # Convert observ msg of RINEX 3.xx to Uni-Format ---------------- #
 def obstype3_conv(i, sysnum, outlines, outlinex):
-  sysstype=[]
   alltypes=[]
   obstypes=[]
+  sysstype=[[],[],[],[]]
   # rinex message label
   obsobs='# / TYPES OF OBSERV'
 
@@ -458,6 +473,15 @@ def obstype3_conv(i, sysnum, outlines, outlinex):
       case 'E': obstypes.append(1)
       case 'R': obstypes.append(2)
       case 'S': obstypes.append(3)
+      case 'C':
+        i+=math.ceil(int(outlines[i][1:6])/13)
+        continue
+      case 'I':
+        i+=math.ceil(int(outlines[i][1:6])/13)
+        continue
+      case 'J':
+        i+=math.ceil(int(outlines[i][1:6])/13)
+        continue
       case   _: 
         i+=1
         continue
@@ -479,7 +503,7 @@ def obstype3_conv(i, sysnum, outlines, outlinex):
         obstypes[pos]='P2C'
       except ValueError: pass
 
-    sysstype.append(obsfmt3_conv(obstypes[1:]))
+    sysstype[obstypes[0]]=obsfmt3_conv(obstypes[1:])
     alltypes=list(set(obstypes[1:]+alltypes))
     i+=1
 
@@ -499,6 +523,7 @@ def obstype3_conv(i, sysnum, outlines, outlinex):
     outline+=4*bnk+alltypes[j]
     if   (j+1)==num:
       bnx=((9-num%9)*6)*bnk
+      if num%9==0: bnx=emp
       outlinex.append(outline+bnx+obsobs+'\n')
       outline=0*bnk
     elif (j+1)%9==0:
@@ -523,7 +548,8 @@ def getsys_rnx3(in_f):
     if   inline.find(obsobs)>=0:
       readst=True
       sys=inline[0:1]
-      if sys and sys not in syslis:
+      if sys==bnk: continue
+      if sys not in syslis:
         syslis.append(sys)
         sysnum+=1
     elif readst and inline.find(obsobs)<0: break
@@ -567,6 +593,7 @@ def rnx3_head2uni(in_f, desver, outlines):
 def rnx2uni3_data(outlines, in_f):
   inline=in_f.readline()
   if not inline: return False
+  if not inline[0:1]=='>': return True
   if not int(inline[30:32])==0: return True
   outlines.append(inline)
   satnum=int(inline[33:35])
@@ -578,12 +605,14 @@ def rnx2uni3_data(outlines, in_f):
 def rnx3rnx2_epo(outline, sPRN):
   outlines=[]
   datedat=outline.split()
+  # omit data when flag !=0 
+  if not int(datedat[7])==0: return outlines
   outline=(
   '%3d%3d%3d%3d%3d%11.7f%3d%3d'
   %(int(datedat[1])-2000,int(datedat[2]),  int(datedat[3]),# |year |month  |day
     int(datedat[4])     ,int(datedat[5]),float(datedat[6]),# |hour |minute |second
     int(datedat[7])     ,len(sPRN)))                       # |flag |satnum |
-  
+
   # convert to RINEX 2.xx
   satnum=len(sPRN)
   for i in range(satnum):
@@ -601,7 +630,6 @@ def rnx3rnx2_dat(addemp, obsnum, outline):
   num=range(len(addemp))
 
   empdat=16*bnk
-
   outlinx=[empdat for i in range(obsnum)]
 
   for i,j in zip(num,addemp):
@@ -648,7 +676,7 @@ def rnx3rnx2_data(outlines, addemp):
   return outlinex
 
 # Convert Uni-format to RINEX 2.xx --------------------- #
-def uni2rnx2_data(sysnum, outlines, out_path, headordata, add_emp):
+def uni2rnx2_data(sysnum, outlines, out_f, headordata, add_emp):
   # rinex message label
   obspro='PGM / RUN BY / DATE'
   obsobs='SYS / # / OBS TYPES'
@@ -667,16 +695,16 @@ def uni2rnx2_data(sysnum, outlines, out_path, headordata, add_emp):
           addemp=obstype3_conv(i, sysnum, outlines, outlinex)
         else: continue
       elif outlines[i].find(obsend)>=0: outlinex.append(outlines[i])
-      else: outlinex.append(outlines[i])
+      else:outlinex.append(outlines[i])
 
   # convert Uni-format to RINEX 2.xx(data)
   elif not headordata:
+      if not outlines: return 0
       outlinex=rnx3rnx2_data(outlines, add_emp)
 
   # output to destination file
-  out_f=open(out_path, 'a')
   out_f.writelines(outlinex)
-  out_f.close()
+  
 
   if       headordata: return addemp
   elif not headordata: return 0
@@ -686,6 +714,7 @@ def rnx3des(in_path, out_path, oriver, desver):
   headread=False
   outlines=[]
   in_f=open(in_path, 'r')
+  out_f=open(out_path, 'a')
   # get the amount of sat system
   sysnum=getsys_rnx3(in_f)
   # convert RINEX 3.xx(header) to Uni-format
@@ -695,19 +724,19 @@ def rnx3des(in_path, out_path, oriver, desver):
   # convert Uni-foramt(header) to Des-format
   if       headread:
     match desver[0:1]:
-      case '2': addemp=uni2rnx2_data(sysnum, outlines, out_path, True, None)
-      case '3': uni2rnx3_data(outlines, out_path)
+      case '2': addemp=uni2rnx2_data(sysnum, outlines, out_f, True, None)
+      case '3': uni2rnx3_data(outlines, out_f)
     outlines=[]
     # convert RINEX 3.xx(data) to Uni-format
     while rnx2uni3_data(outlines, in_f):
       # convert Uni-foramt(data) to Des-format
       match desver[0:1]:
-        case '2': uni2rnx2_data(sysnum, outlines, out_path, False, addemp)
-        case '3': uni2rnx3_data(outlines, out_path)
+        case '2': uni2rnx2_data(sysnum, outlines, out_f, False, addemp)
+        case '3': uni2rnx3_data(outlines, out_f)
       outlines=[]
-
   elif not headread: return 0
-
+  in_f.close()
+  out_f.close()
   return 1
 
 # Reject data of invaild input ----------------------- #

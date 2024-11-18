@@ -65,6 +65,9 @@ Tip: if need to use RINEX file of strict format, you are supposed to be not use 
 2024/11/17: Supports conversion between RINEX2.xx format and RINEX3.xx format, and also supports
             conversion between the same major versions.
 
+2024/11/18: Correct crash when input RINEX file with comment in the middle of data; Enhance the 
+            speed of converting.
+
 ### UPDATE PLAN
 1. ~~Short-term  goals：Supports conversion of RINEX2.xx and RINEX3.xx observation files.~~ √
 2. Middle-term goals：Supports conversion of RINEX2.xx and RINEX3.xx broadcast ephemeris files.
