@@ -1,20 +1,16 @@
 [English](Readme.md) | [中文](ReadmeCN.md)
 
-### USING METHOD
-Open the English version"KNZ_Convert_en_us_ver_1.2.5.exe", Click the "Single Convert", and
-select the path of origin file. Click the button on the right of "Convert" button to choose
-the origin format and target format. The converted file will generate in the same diectory
-of origin file, if not select the path of output file. Click the "Batch Convert", same 
-as the operate of "Single Convert", it is to be noticed that the major version of files must
-be same or the file of different version will fail to convert. The file name format of 
-converted is like: COV-{$originfilename}.{$originfileextensions}
+### 使用方法
+打开中文版本“KNZ_Convert_zh_cn_ver_1.2.5.exe”，点击单文件处理，选择原始文件路径。点击转换右侧按钮
+选择原始格式和目标格式。如果未指定输出文件路径，转换后的文件将生成在原始文件的同一目录下。点击批文件
+处理，与单文件转换相同操作下，需要注意要保证输入文件的主要版本相同。否则会转换失败。转换后的文件命名
+格式为：COV-{原文件名}.{原文件后缀名}
 
-### BRIEF
-This software is developed by Python, mainly to complish the convert of different format
-of RINEX observation data. At present, the convert between RINEX 2.xx and RINEX 3.xx is 
-already be basiclly supported.
+### 软件简介
+本软件是基于Python开发，主要实现转换不同版本格式的RINEX观测值文件。目前已经实现RINEX 2.xx格式与
+RINEX 3.xx格式基本的相互转换。
 
-Supported file format：
+文件格式转换支持列表：
 
 | FILE TYPE | MAJOR VERSION |2.10|2.11|2.12|3.00|3.01|3.02|3.03|3.04|3.20|3.30|4.00|4.01|
 |-----------|---------------|----|----|----|----|----|----|----|----|----|----|----|----|
@@ -28,8 +24,7 @@ Supported file format：
 |           | 3.xx          | —— | —— | —— | —— | —— | —— | —— | —— | x  | x  | —— | —— |
 
 
-The double-character observation type of RINEX 2.xx will be matched by the list
-below:
+对于RINEX 2.xx版本的两字符观测值类型将按照如下表格进行匹配：
 
 |SYSTEM  |FREQ.BAND  |FREQUENCY  |2.xx CODE        |  >  |3.xx CODE          |
 |--------|-----------|-----------|-----------------|-----|-------------------|
@@ -46,30 +41,25 @@ below:
 |SBAS    |L1         |1575.42    |[C, L, D, S] 1   |  >  |[C, L, D, S] 1C    |
 |        |L2         |1176.45    |[C, L, D, S] 5   |  >  |[C, L, D, S] 5I    |
 
-Because of the observation type of RINEX 3.xx is not completely compatible with the type of
-RINEX 2.xx. So, it will be omitted for the observation of same type from the same frequency.
-In general, based on the rule: "Convert the first, omit the next." to compatible with the
-RINEX 2.xx. At the same time, since this conversion is an irreversible processing method, 
-the converted observation file data can only be used as a reference when performing this
-conversion, cannot replace the original version format.
 
-Tip: if need to use RINEX file of strict format, you are supposed to be not use this software.
+由于RINEX 3.xx版本的观测值类型无法完全兼容RINEX 2.xx版本，所以对于RINEX 3.xx同一频段的同类型观测值
+转换时会进行缺省处理。一般按照原观测值文件头文件中观测值 “先列出先转换，后列出先省略”的方式进行兼容。
+同时由于该转换是不可逆的处理方式，因此进行该转换时转换后的观测值文件数据只能作为参考使用，无法替代原生
+的版本格式。
 
-### UPDATE STAMP
-2024/11/14: Currently, full support for RINEX 2.xx format conversion has been implemented, and
-            the format output errors of the previous version have been corrected. Currently, 
-            support for converting RINEX 2.xx to RINEX 3.xx is available.
-            
-2024/11/15: Corrected output format, ignored RINEX 2.xx free signals and changed matching rules.
+注：如需使用严格的RINEX格式文件，请勿使用本软件。
 
-2024/11/17: Supports conversion between RINEX2.xx format and RINEX3.xx format, and also supports
-            conversion between the same major versions.
+### 更新简记
+2024/11/14: 目前已经对RINEX 2.xx格式转换进行了全面支持，修改了上一版本的格式输出错误，目前支持RINEX 2.xx转换为RINEX 3.xx。
 
-2024/11/18: Correct crash when input RINEX file with comment in the middle of data; Enhance the 
-            speed of converting.
+2024/11/15: 更正了输出格式，忽略RINEX 2.xx空余信号并更改匹配规则
 
-### UPDATE PLAN
-1. ~~Short-term  goals：Supports conversion of RINEX2.xx and RINEX3.xx observation files.~~ √
-2. Middle-term goals：Supports conversion of RINEX2.xx and RINEX3.xx broadcast ephemeris files.
-3. Middle-term goals：Gradually introduce support for conversion of RTCM format files.
-4. Long-term   goals：Receiver raw data conversion.
+2024/11/17: 支持RINEX2.xx格式和RINEX3.xx格式的相互转换，同时支持同一主要版本之间的转换。
+
+2024/11/18: 修复了在转换数据中标有注释的RINEX文件时崩溃的错误；提高了文件转换速度。
+
+### 更新计划
+1. ~~近期目标：支持转换RINEX2.xx版本与RINEX3.xx版本观测值文件。~~ √
+2. 中期目标：支持转换RINEX2.xx版本与RINEX3.xx版本广播星历文件。
+3. 中期目标：逐步引入对RTCM格式文件的转换支持。
+4. 远期目标：接收机原始数据转换。
