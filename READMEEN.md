@@ -1,4 +1,4 @@
-[English](Readme.md) | [中文](ReadmeCN.md)
+[English](READMEEN.md) | [中文](README.md)
 
 ### USING METHOD
 Open the English version"KNZ_Convert_en_us_ver_1.2.5.exe", Click the "Single Convert", and

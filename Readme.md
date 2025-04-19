@@ -1,4 +1,4 @@
-[English](Readme.md) | [中文](ReadmeCN.md)
+[English](READMEEN.md) | [中文](README.md)
 
 ### 使用方法
 打开中文版本“KNZ_Convert_zh_cn_ver_1.2.5.exe”，点击单文件处理，选择原始文件路径。点击转换右侧按钮
